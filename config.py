@@ -7,12 +7,13 @@ SUPPORTED_MODEL_FORMATS = ['.pth', '.onnx', '.pt']
 SUPPORTED_IMAGE_FORMATS = ['.jpg', '.jpeg', '.png', '.bmp']
 
 # Model types
-MODEL_TYPES = ['ResNet', 'YOLO']
+MODEL_TYPES = ['ResNet', 'YOLO', 'Faster R-CNN']
 
 # Default input sizes for different model types
 DEFAULT_INPUT_SIZES = {
     'ResNet': (224, 224),
-    'YOLO': (640, 640)
+    'YOLO': (640, 640),
+    'Faster R-CNN': (800, 800)  # Can handle variable sizes, 800x800 is common
 }
 
 # ImageNet normalization constants

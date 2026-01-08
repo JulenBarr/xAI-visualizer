@@ -104,11 +104,75 @@ class ModelLoader:
                 "Install with: pip install ultralytics"
             )
 
-        # Load YOLO model
-        yolo = YOLO(file_path)
+        try:
+            # Load YOLO model
+            yolo = YOLO(file_path)
 
-        # Extract the underlying PyTorch model
-        model = yolo.model
+            # Extract the underlying PyTorch model
+            # The YOLO object wraps the actual model
+            if hasattr(yolo, 'model'):
+                model = yolo.model
+            else:
+                # Fallback: the YOLO object itself might be the model
+                model = yolo
+
+            # Ensure it's a proper nn.Module
+            if not isinstance(model, nn.Module):
+                raise ValueError(
+                    f"Expected nn.Module, got {type(model)}. "
+                    "The YOLO model format may not be compatible."
+                )
+
+            model.eval()
+            return model
+
+        except Exception as e:
+            raise RuntimeError(
+                f"Failed to load YOLO model: {str(e)}. "
+                "Make sure the file is a valid YOLO .pt or .pth file from Ultralytics."
+            )
+
+    @staticmethod
+    def load_faster_rcnn_pth(file_path: str, architecture: str = 'resnet50') -> nn.Module:
+        """
+        Load a Faster R-CNN model from a .pth file.
+
+        Args:
+            file_path: Path to the .pth file
+            architecture: Backbone architecture (default: resnet50)
+
+        Returns:
+            Loaded PyTorch model
+
+        Raises:
+            ImportError: If torchvision is not installed
+        """
+        from torchvision.models.detection import fasterrcnn_resnet50_fpn, fasterrcnn_mobilenet_v3_large_fpn
+
+        # Map of architectures
+        model_map = {
+            'resnet50': fasterrcnn_resnet50_fpn,
+            'resnet50_fpn': fasterrcnn_resnet50_fpn,
+            'mobilenet_v3': fasterrcnn_mobilenet_v3_large_fpn,
+        }
+
+        if architecture.lower() not in model_map:
+            # Default to resnet50
+            architecture = 'resnet50'
+
+        # Create model instance (without pretrained weights initially)
+        model = model_map[architecture.lower()](weights=None, weights_backbone=None)
+
+        # Load state dict
+        state_dict = torch.load(file_path, map_location='cpu')
+
+        # Handle different state dict formats
+        if 'state_dict' in state_dict:
+            state_dict = state_dict['state_dict']
+        elif 'model' in state_dict:
+            state_dict = state_dict['model']
+
+        model.load_state_dict(state_dict, strict=False)
         model.eval()
 
         return model
@@ -152,7 +216,7 @@ class ModelLoader:
 
         Args:
             file_path: Path to the model file
-            model_type: Type of model ('ResNet' or 'YOLO')
+            model_type: Type of model ('ResNet', 'YOLO', or 'Faster R-CNN')
             architecture: Specific architecture (e.g., 'resnet50', optional)
 
         Returns:
@@ -174,6 +238,9 @@ class ModelLoader:
                 return ModelLoader.load_resnet_pth(file_path, arch)
             elif model_type == 'YOLO':
                 return ModelLoader.load_yolo_pth(file_path)
+            elif model_type == 'Faster R-CNN':
+                arch = architecture or 'resnet50'
+                return ModelLoader.load_faster_rcnn_pth(file_path, arch)
             else:
                 raise ValueError(f"Unsupported model type: {model_type}")
 

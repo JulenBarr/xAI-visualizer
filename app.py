@@ -209,7 +209,7 @@ def main():
             help="Select the type of model you're uploading"
         )
 
-        # Architecture selector for ResNet
+        # Architecture selector for ResNet and Faster R-CNN
         architecture = None
         if model_type == "ResNet":
             architecture = st.selectbox(
@@ -217,6 +217,13 @@ def main():
                 ['resnet18', 'resnet34', 'resnet50', 'resnet101', 'resnet152'],
                 index=2,  # Default to resnet50
                 help="Select the ResNet architecture"
+            )
+        elif model_type == "Faster R-CNN":
+            architecture = st.selectbox(
+                "Backbone",
+                ['resnet50', 'resnet50_fpn', 'mobilenet_v3'],
+                index=0,  # Default to resnet50
+                help="Select the Faster R-CNN backbone architecture"
             )
 
         model_file = st.file_uploader(
@@ -267,7 +274,7 @@ def main():
         # Instructions
         st.markdown("### How to use:")
         st.markdown("""
-        1. **Upload a Model**: Select your model type (ResNet or YOLO) and upload a `.pth` or `.onnx` file
+        1. **Upload a Model**: Select your model type (ResNet, YOLO, or Faster R-CNN) and upload a `.pth` or `.onnx` file
         2. **Upload an Image**: Choose an image to run inference on
         3. **Select a Layer**: Pick which layer's activations you want to visualize
         4. **Choose Visualization Mode**: View as a feature grid or aggregated heatmap
@@ -277,6 +284,7 @@ def main():
         st.markdown("""
         - **ResNet**: ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
         - **YOLO**: YOLOv8, YOLOv5 (and other Ultralytics models)
+        - **Faster R-CNN**: ResNet50 FPN, MobileNet V3 backbones
         """)
 
     elif st.session_state.preprocessed_tensor is None:
