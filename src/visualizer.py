@@ -22,7 +22,9 @@ class ActivationVisualizer:
         activation: torch.Tensor,
         max_cols: int = GRID_MAX_COLS,
         cmap: str = 'viridis',
-        max_channels: Optional[int] = None
+        max_channels: Optional[int] = None,
+        channel_selection: str = 'first',
+        channel_indices: Optional[list] = None
     ) -> Figure:
         """
         Create a grid visualization of feature maps.
@@ -32,6 +34,8 @@ class ActivationVisualizer:
             max_cols: Maximum number of columns in the grid
             cmap: Matplotlib colormap name
             max_channels: Maximum number of channels to display (None for all)
+            channel_selection: 'first', 'top_activated', or 'custom'
+            channel_indices: Custom list of channel indices (for 'custom' mode)
 
         Returns:
             Matplotlib figure containing the grid
@@ -47,12 +51,23 @@ class ActivationVisualizer:
             )
 
         # Extract channels from first batch
-        batch, channels, height, width = activation.shape
+        batch, total_channels, height, width = activation.shape
 
-        # Limit number of channels if specified
-        if max_channels is not None:
-            channels = min(channels, max_channels)
-            activation = activation[:, :channels, :, :]
+        # Select channels based on method
+        if channel_selection == 'top_activated':
+            # Calculate mean activation per channel
+            channel_means = activation[0].mean(dim=(1, 2))  # Average over H and W
+            # Get indices of top activated channels
+            _, top_indices = torch.topk(channel_means, min(max_channels or total_channels, total_channels))
+            selected_indices = top_indices.tolist()
+        elif channel_selection == 'custom' and channel_indices is not None:
+            selected_indices = channel_indices[:max_channels] if max_channels else channel_indices
+        else:  # 'first' or default
+            selected_indices = list(range(min(max_channels or total_channels, total_channels)))
+
+        # Select the channels
+        activation = activation[:, selected_indices, :, :]
+        channels = len(selected_indices)
 
         # Calculate grid dimensions
         n_cols = min(channels, max_cols)
@@ -84,10 +99,13 @@ class ActivationVisualizer:
             # Display the channel
             im = axes[idx].imshow(channel_data, cmap=cmap)
             axes[idx].axis('off')
-            axes[idx].set_title(f'Channel {idx}', fontsize=8)
 
-            # Add colorbar
-            plt.colorbar(im, ax=axes[idx], fraction=0.046, pad=0.04)
+            # Show actual channel index
+            actual_channel_idx = selected_indices[idx]
+            axes[idx].set_title(f'Ch {actual_channel_idx}', fontsize=10, fontweight='bold')
+
+            # Add colorbar (smaller)
+            plt.colorbar(im, ax=axes[idx], fraction=0.035, pad=0.02)
 
         # Hide unused subplots
         for idx in range(channels, len(axes)):

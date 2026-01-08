@@ -166,18 +166,31 @@ def extract_and_visualize(layer_name: str, viz_mode: str):
             # Create visualization based on mode
             if viz_mode == "Feature Maps Grid":
                 with st.spinner("Creating feature grid visualization..."):
+                    # Get grid options from session state
+                    grid_options = st.session_state.get('grid_options', {})
+                    num_channels = grid_options.get('num_channels', 16)
+                    channel_method = grid_options.get('channel_method', 'First N channels')
+
+                    # Map channel method to parameter
+                    if 'Top activated' in channel_method:
+                        selection_mode = 'top_activated'
+                    else:
+                        selection_mode = 'first'
+
                     fig = ActivationVisualizer.create_feature_grid(
                         activation,
-                        max_cols=8,
+                        max_cols=4,  # Reduced for larger individual images
                         cmap='viridis',
-                        max_channels=64  # Limit to first 64 channels
+                        max_channels=num_channels,
+                        channel_selection=selection_mode
                     )
                     st.pyplot(fig)
 
                     # Show statistics
                     stats = ActivationVisualizer.get_activation_statistics(activation)
-                    st.write("**Activation Statistics:**")
-                    st.json(stats)
+                    with st.expander("📊 Activation Statistics"):
+                        st.json(stats)
+                        st.caption(f"Showing {num_channels} of {stats['num_channels']} total channels ({selection_mode} mode)")
 
             elif viz_mode == "Aggregated Heatmap":
                 with st.spinner("Creating heatmap visualization..."):
@@ -353,6 +366,33 @@ def main():
 
             if viz_mode == "Feature Maps Grid":
                 st.caption("Displays individual activation channels as a grid of heatmaps")
+
+                # Grid visualization options
+                st.write("**Grid Options:**")
+
+                # Number of channels to display
+                num_channels = st.slider(
+                    "Channels to display",
+                    min_value=4,
+                    max_value=64,
+                    value=16,
+                    step=4,
+                    help="Number of channels to show in the grid"
+                )
+
+                # Channel selection method
+                channel_method = st.radio(
+                    "Channel selection",
+                    ["Top activated", "First N channels", "Custom range"],
+                    help="How to select which channels to display"
+                )
+
+                # Store in session state for use in visualization
+                if 'grid_options' not in st.session_state:
+                    st.session_state.grid_options = {}
+                st.session_state.grid_options['num_channels'] = num_channels
+                st.session_state.grid_options['channel_method'] = channel_method
+
             else:
                 st.caption("Shows average activation overlaid on the original image")
 
