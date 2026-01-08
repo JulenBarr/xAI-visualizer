@@ -90,6 +90,25 @@ def load_model_from_upload(uploaded_file, model_type: str, architecture: str = N
     except Exception as e:
         st.error(f"Error loading model: {str(e)}")
 
+        # Show more details for debugging
+        with st.expander("🔍 Error Details (for debugging)"):
+            st.code(f"""
+Model Type: {model_type}
+Architecture: {architecture}
+File: {uploaded_file.name}
+Error Type: {type(e).__name__}
+Error Message: {str(e)}
+
+Tip: For YOLO models, make sure you're using a .pt file from Ultralytics.
+You can download one with:
+    from ultralytics import YOLO
+    model = YOLO('yolov8n.pt')
+            """)
+
+            # Show traceback
+            import traceback
+            st.code(traceback.format_exc())
+
 
 def process_image(uploaded_image):
     """
