@@ -69,13 +69,26 @@ class ModelLoader:
         model = model_map[architecture.lower()](weights=None)
 
         # Load state dict
-        state_dict = torch.load(file_path, map_location='cpu')
+        loaded = torch.load(file_path, map_location='cpu', weights_only=False)
 
-        # Handle different state dict formats
-        if 'state_dict' in state_dict:
-            state_dict = state_dict['state_dict']
-        elif 'model' in state_dict:
-            state_dict = state_dict['model']
+        # Handle different formats
+        if isinstance(loaded, nn.Module):
+            # If a full model was saved, extract its state dict
+            state_dict = loaded.state_dict()
+        elif isinstance(loaded, dict):
+            # If it's a dict, check for nested state_dict
+            if 'state_dict' in loaded:
+                state_dict = loaded['state_dict']
+            elif 'model' in loaded:
+                state_dict = loaded['model']
+            else:
+                # Assume it's already the state dict
+                state_dict = loaded
+        else:
+            raise ValueError(
+                f"Unexpected format in model file. "
+                f"Expected dict or nn.Module, got {type(loaded)}"
+            )
 
         model.load_state_dict(state_dict, strict=False)
         model.eval()
@@ -164,13 +177,26 @@ class ModelLoader:
         model = model_map[architecture.lower()](weights=None, weights_backbone=None)
 
         # Load state dict
-        state_dict = torch.load(file_path, map_location='cpu')
+        loaded = torch.load(file_path, map_location='cpu', weights_only=False)
 
-        # Handle different state dict formats
-        if 'state_dict' in state_dict:
-            state_dict = state_dict['state_dict']
-        elif 'model' in state_dict:
-            state_dict = state_dict['model']
+        # Handle different formats
+        if isinstance(loaded, nn.Module):
+            # If a full model was saved, extract its state dict
+            state_dict = loaded.state_dict()
+        elif isinstance(loaded, dict):
+            # If it's a dict, check for nested state_dict
+            if 'state_dict' in loaded:
+                state_dict = loaded['state_dict']
+            elif 'model' in loaded:
+                state_dict = loaded['model']
+            else:
+                # Assume it's already the state dict
+                state_dict = loaded
+        else:
+            raise ValueError(
+                f"Unexpected format in model file. "
+                f"Expected dict or nn.Module, got {type(loaded)}"
+            )
 
         model.load_state_dict(state_dict, strict=False)
         model.eval()
